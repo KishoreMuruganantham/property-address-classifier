@@ -1,0 +1,68 @@
+TEAL India AI/ML Intern Assignment — Approach Document
+========================================================
+
+1. PROBLEM
+   Classify Indian property addresses (raw text) into 5 categories:
+   flat, houseorplot, landparcel, commercial unit, others.
+
+2. DATA ANALYSIS
+   - Training: 9,442 samples | Validation: 2,361 samples
+   - Moderately imbalanced (flat: 34.5% vs landparcel: 10.6%)
+   - Significant noise: JSON errors, Na placeholders, newlines,
+     non-ASCII characters, very short/long entries, numeric-heavy entries
+   - Key finding: strong keyword signals exist (flat, shop, house, etc.)
+     but some categories (landparcel vs houseorplot) share vocabulary
+
+3. PREPROCESSING
+   - Unicode NFKD normalization + ASCII encoding (remove Indic scripts)
+   - Smart quote replacement, whitespace normalization
+   - Standalone Na removal, PIN code removal
+   - Abbreviation normalization (30+ patterns)
+   - Long number sequence removal (plot/survey numbers do not generalize)
+   - Garbage detection for JSON errors and near-empty strings
+
+4. FEATURE ENGINEERING
+   - TF-IDF vectorizer (5000 features, unigrams + bigrams, sublinear TF)
+   - 23 hand-crafted domain features:
+     * Binary keyword indicators for each category signal words
+     * Structure-presence flag (distinguishes landparcel from houseorplot)
+     * Text statistics (length, word count, digit ratio)
+     * Garbage flag
+   - StandardScaler on keyword features before concatenation
+
+5. MODELS EVALUATED
+   - Logistic Regression (balanced class weights, multinomial)
+   - Linear SVM (balanced class weights)
+   - Random Forest (200 trees, balanced class weights)
+   - Gradient Boosting (150 estimators, depth 5)
+
+6. HYPERPARAMETER TUNING
+   - GridSearchCV with 3-fold stratified cross-validation on best model
+   - Scoring metric: Macro F1 (accounts for class imbalance)
+
+7. FINAL MODEL: Random Forest
+   - Validation Accuracy: 0.8962
+   - Validation Macro F1: 0.8796
+
+8. KEY DECISIONS
+   - Used class_weight=balanced to handle imbalance without oversampling
+   - Removed PIN codes and long numbers (geographic/ID noise)
+   - Hand-crafted features encode domain knowledge that pure TF-IDF misses
+   - The others class is inherently noisy — model learns it by exclusion
+
+9. REPRODUCIBILITY
+   - Random seed: 42 everywhere
+   - All artifacts saved in best_model/ folder
+   - predict.py provides a self-contained prediction function
+
+10. FILES
+    - property_address_classifier.ipynb  — full notebook with EDA + training
+    - predict.py                         — standalone prediction script
+    - best_model/classifier_model.pkl    — trained model
+    - best_model/tfidf_vectorizer.pkl    — fitted TF-IDF vectorizer
+    - best_model/label_encoder.pkl       — fitted label encoder
+    - best_model/keyword_scaler.pkl      — fitted StandardScaler
+    - confusion_matrix.png               — confusion matrix heatmap
+    - model_comparison.png               — model comparison bar chart
+    - per_class_f1.png                   — per-class F1 comparison
+    - approach.txt                       — this file
